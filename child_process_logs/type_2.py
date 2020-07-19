@@ -5,9 +5,11 @@ from time import sleep
 
 # Referenced from: https://stackoverflow.com/a/4896288/3970917
 
+
 def enqueue_output(out, queue):
     for line in out:
         queue.put(line)
+
 
 def run():
     proc = run_process()
@@ -22,19 +24,18 @@ def run():
         # read line without blocking
         # You can have timeout also
         while not q.empty():
-            line = q.get_nowait() # or q.get(timeout=.1)
-            print(f"STDOUT from process: {line.decode('utf-8')}")
+            line = q.get_nowait()  # or q.get(timeout=.1)
+            print(f"STDOUT from process: {line.decode('utf-8').strip()}")
 
-        sleep(3)
         # Do something else
         print("<<<<<<<<<<<<<<< Doing something else >>>>>>>>>>>>>>>")
-    
+        sleep(3)
+
     print("Waiting for the thread to complete")
     thread.join()
 
     print("Waiting for process to complete")
     proc.wait()
-
 
 
 if __name__ == "__main__":
