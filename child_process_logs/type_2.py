@@ -6,33 +6,39 @@ from time import sleep
 # Referenced from: https://stackoverflow.com/a/4896288/3970917
 
 
-def enqueue_output(out, queue):
-    for line in out:
+def enqueue_logs(process, queue):
+    for line in process.stdout:
         queue.put(line)
+
+
+def handle_logs(proc, queue):
+    while proc.poll() is None or not queue.empty():
+        # read line without blocking
+        # You can have timeout also
+        if queue.empty():
+            sleep(0.5)
+            continue
+
+        line = queue.get_nowait()  # or q.get(timeout=.1)
+        print(f"STDOUT from process: {line.decode('utf-8').strip()}")
 
 
 def run():
     proc = run_process()
     q = Queue()
-    thread = Thread(target=enqueue_output, args=(proc.stdout, q))
+    thread = Thread(target=enqueue_logs, args=(proc, q))
     thread.start()
-    # I don't need this thread as stderr is being streamed to stdout
-    # thread2 = Thread(target=enqueue_error, args=(proc.stderr, q))
-    # thread2.start()
 
-    while proc.poll() is None or not q.empty():
-        # read line without blocking
-        # You can have timeout also
-        while not q.empty():
-            line = q.get_nowait()  # or q.get(timeout=.1)
-            print(f"STDOUT from process: {line.decode('utf-8').strip()}")
-
+    thread2 = Thread(target=handle_logs, args=(proc, q))
+    thread2.start()
+    for i in range(5):
         # Do something else
         print("<<<<<<<<<<<<<<< Doing something else >>>>>>>>>>>>>>>")
-        sleep(3)
+        sleep(1)
 
     print("Waiting for the thread to complete")
     thread.join()
+    thread2.join()
 
     print("Waiting for process to complete")
     proc.wait()
